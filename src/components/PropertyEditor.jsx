@@ -20,7 +20,8 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
         setClassName(selectedElement.element.className || '');
         
         // Initialize fontSize from element's className or computed style
-        const currentClasses = selectedElement.element.className.split(' ');
+        const classNameString = selectedElement.className || '';
+        const currentClasses = classNameString.split(' ').filter(Boolean);
         const currentFontSizeClass = currentClasses.find(cls => cls.startsWith('text-'));
         if (currentFontSizeClass) {
           setFontSize(currentFontSizeClass);
@@ -43,10 +44,11 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
         setFontStyle(selectedElement.styles.fontStyle || 'normal');
         
         // Determine current font family from element's computed style or className
-        const computedFontFamily = selectedElement.styles.fontFamily;
-        if (computedFontFamily.includes('monospace')) {
+        const computedFontFamily = selectedElement.styles.fontFamily || '';
+        const lowerFontFamily = computedFontFamily.toLowerCase();
+        if (lowerFontFamily.includes('monospace')) {
           setFontFamily('mono');
-        } else if (computedFontFamily.includes('serif')) {
+        } else if (lowerFontFamily.includes('serif')) {
           setFontFamily('serif');
         } else {
           setFontFamily('sans');
@@ -70,7 +72,7 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
   
     const handleUpdate = (property, value) => {
       if (onUpdate && selectedElement) {
-        onUpdate(selectedElement.path, property, value);
+        onUpdate(selectedElement.pathIndices, property, value);
       }
     };
   
@@ -89,7 +91,7 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
       <div className="space-y-4">
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="font-medium text-blue-900">Selected: {selectedElement.tagName}</div>
-          <div className="text-sm text-blue-700">Path: {selectedElement.path}</div>
+          <div className="text-sm text-blue-700">Path: {Array.isArray(selectedElement.pathIndices) ? selectedElement.pathIndices.join(' > ') : selectedElement.path}</div>
         </div>
   
         {/* Text Content */}
