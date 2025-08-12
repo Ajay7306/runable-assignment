@@ -12,10 +12,12 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
     const [fontFamily, setFontFamily] = useState('sans'); // 'sans', 'serif', 'mono'
     const [padding, setPadding] = useState('p-0'); // Tailwind padding class
     const [margin, setMargin] = useState('m-0'); // Tailwind margin class
+    const [className, setClassName] = useState(''); // For editing Tailwind classes
   
     useEffect(() => {
       if (selectedElement) {
         setTextContent(selectedElement.textContent || '');
+        setClassName(selectedElement.element.className || '');
         
         // Initialize fontSize from element's className or computed style
         const currentClasses = selectedElement.element.className.split(' ');
@@ -105,6 +107,24 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
             className="w-full p-2 border border-gray-300 rounded-md resize-none"
             rows="3"
             placeholder="Enter text content..."
+          />
+        </div>
+
+        {/* Class Name */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium mb-2">
+            <Code className="w-4 h-4" />
+            Tailwind Classes (className)
+          </label>
+          <input
+            type="text"
+            value={className}
+            onChange={(e) => {
+              setClassName(e.target.value);
+              handleUpdate('className', e.target.value);
+            }}
+            className="w-full p-2 border border-gray-300 rounded-md"
+            placeholder="e.g., flex items-center bg-blue-500"
           />
         </div>
   

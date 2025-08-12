@@ -71,6 +71,19 @@ const WebsiteEditor = ({ component, onSave }) => {
             const text = await response.text();
             setSelectedFileContent(text);
             setSelectedFileName(fileName);
+
+            // Attempt to extract className from the root element
+            const classNameMatch = text.match(/className="([^"]*)"/);
+            const extractedClassName = classNameMatch ? classNameMatch[1] : '';
+
+            // Create a dummy selectedElement for PropertyEditor
+            setSelectedElement({
+                tagName: 'Root Element',
+                path: fileName,
+                element: { className: extractedClassName },
+                styles: {},
+                textContent: ''
+            });
         } catch (error) {
             console.error("Failed to fetch file content:", error);
             setSelectedFileContent("Failed to load file content. Make sure the file exists in the public/preview-standalone directory and your server is configured to serve static files.");
@@ -79,11 +92,20 @@ const WebsiteEditor = ({ component, onSave }) => {
 
 
     const handleElementUpdate = (path, property, value) => {
-        // This function is for property editing, not directly related to component selection
-        // Keep existing logic if needed for future property editing of the rendered component
         console.log('Updating element:', { path, property, value });
 
-        // ... (existing property update logic, if any, will remain here)
+        if (property === 'className') {
+            const oldContent = selectedFileContent;
+            // Regex to find className="..." and replace its content
+            // This regex assumes className is on the root element and is a single attribute.
+            // It's a simplified approach and might need refinement for complex cases.
+            const newContent = oldContent.replace(/(className=")([^"]*)(")/g, `$1${value}$3`);
+            setSelectedFileContent(newContent);
+        } else if (property === 'textContent') {
+            // This part is more complex as it requires parsing JSX to find the correct text node.
+            // For now, we'll just log it.
+            console.log("Text content update requested, but not implemented for direct code modification.");
+        }
 
         setSaveStatus('Auto-saved');
         setTimeout(() => setSaveStatus(''), 2000);
