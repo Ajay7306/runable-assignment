@@ -10,6 +10,7 @@ import PropertyEditor from './PropertyEditor';
 const WebsiteEditor = ({ component, onSave }) => {
     const [selectedComponentPath, setSelectedComponentPath] = useState('src/components/ui/button.jsx'); // Default to button
     const [code, setCode] = useState(component || '');
+    const [userCode, setUserCode] = useState('');
     const [view, setView] = useState('preview');
     const [selectedElement, setSelectedElement] = useState(null);
     const [componentId, setComponentId] = useState(null);
@@ -18,6 +19,8 @@ const WebsiteEditor = ({ component, onSave }) => {
     const [files, setFiles] = useState([]);
     const [selectedFileContent, setSelectedFileContent] = useState('');
     const [selectedFileName, setSelectedFileName] = useState('');
+
+    const rendererRef = useRef(null);
 
     const handleSaveFileContent = async () => {
         if (!selectedFileName || !selectedFileContent) {
@@ -78,15 +81,12 @@ const WebsiteEditor = ({ component, onSave }) => {
     };
 
 
-    const handleElementUpdate = (path, property, value) => {
-        // This function is for property editing, not directly related to component selection
-        // Keep existing logic if needed for future property editing of the rendered component
-        console.log('Updating element:', { path, property, value });
-
-        // ... (existing property update logic, if any, will remain here)
-
-        setSaveStatus('Auto-saved');
-        setTimeout(() => setSaveStatus(''), 2000);
+    const handleElementUpdate = (pathIndices, property, value) => {
+        if (rendererRef.current && typeof rendererRef.current.applyUpdate === 'function') {
+            rendererRef.current.applyUpdate(pathIndices, property, value);
+            setSaveStatus('Auto-saved');
+            setTimeout(() => setSaveStatus(''), 2000);
+        }
     };
 
     const handleSave = async () => {
@@ -186,42 +186,58 @@ const WebsiteEditor = ({ component, onSave }) => {
                             <CardContent className="p-0 h-screen"> {/* Removed padding here */}
                                 {view === 'preview' ? (
                                     <ComponentRenderer
-                                        code={`/${selectedComponentPath}`}
+                                        ref={rendererRef}
+                                        code={userCode}
+                                        onElementSelect={(el) => setSelectedElement(el)}
                                     />
                                 ) : (
-                                    <div className='flex flex-wrap'>
-                                        <Card className="bg-gray-900 border border-gray-800 text-gray-50 w-3/12 rounded-none">
-                                            <CardHeader>
-                                                <CardTitle>Files</CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <ul>
-                                                    {files.map(file => (
-                                                        <li key={file} onClick={() => handleFileSelect(file)} className="cursor-pointer hover:text-blue-400">
-                                                            {file}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </CardContent>
-                                        </Card>
-                                        <div className="w-9/12">
-                                            <div className="flex justify-end p-2 bg-gray-800 border-b border-gray-700">
-                                                <Button
-                                                    onClick={handleSaveFileContent}
-                                                    disabled={!selectedFileName}
-                                                    variant="secondary"
-                                                    size="sm"
-                                                >
-                                                    <Save className="w-4 h-4 mr-2" />
-                                                    Save File
-                                                </Button>
-                                            </div>
+                                    <div className='flex flex-col gap-2 h-full'>
+                                        <div className="p-3 border-b border-gray-800 bg-gray-900">
+                                            <div className="text-sm text-gray-300 mb-2">Paste a React component (JSX). It should export a default component or return JSX.</div>
                                             <textarea
-                                                value={selectedFileContent}
-                                                onChange={(e) => setSelectedFileContent(e.target.value)}
-                                                className="w-full h-screen p-4 font-mono text-sm bg-gray-950 text-gray-50 border border-gray-800 resize-none focus:outline-none"
-                                                placeholder="Select a file to see its code..."
+                                                value={userCode}
+                                                onChange={(e) => setUserCode(e.target.value)}
+                                                className="w-full h-56 p-3 font-mono text-sm bg-gray-950 text-gray-50 border border-gray-800 resize-none focus:outline-none"
+                                                placeholder={`Example:\nexport default function Demo(){\n  return (<div className=\"p-4 text-xl font-bold text-blue-600\">Hello Tailwind</div>);\n}`}
                                             />
+                                            <div className="flex justify-end mt-2">
+                                                <Button onClick={() => setView('preview')} variant="secondary" size="sm">Render</Button>
+                                            </div>
+                                        </div>
+                                        <div className='flex-1 flex flex-wrap'>
+                                            <Card className="bg-gray-900 border border-gray-800 text-gray-50 w-3/12 rounded-none">
+                                                <CardHeader>
+                                                    <CardTitle>Files</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <ul>
+                                                        {files.map(file => (
+                                                            <li key={file} onClick={() => handleFileSelect(file)} className="cursor-pointer hover:text-blue-400">
+                                                                {file}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </CardContent>
+                                            </Card>
+                                            <div className="w-9/12">
+                                                <div className="flex justify-end p-2 bg-gray-800 border-b border-gray-700">
+                                                    <Button
+                                                        onClick={handleSaveFileContent}
+                                                        disabled={!selectedFileName}
+                                                        variant="secondary"
+                                                        size="sm"
+                                                    >
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save File
+                                                    </Button>
+                                                </div>
+                                                <textarea
+                                                    value={selectedFileContent}
+                                                    onChange={(e) => setSelectedFileContent(e.target.value)}
+                                                    className="w-full h-[calc(100vh-250px)] p-4 font-mono text-sm bg-gray-950 text-gray-50 border border-gray-800 resize-none focus:outline-none"
+                                                    placeholder="Select a file to see its code..."
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 )}
