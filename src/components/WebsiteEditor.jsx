@@ -14,25 +14,41 @@ import {
   useSandpack,
 } from "@codesandbox/sandpack-react";
 
-const ActiveFileTracker = ({ onChange }) => {
+const ActiveFileTracker = ({ onChange, onCodeChange }) => {
   const { sandpack } = useSandpack();
   const prevCodeRef = useRef(null);
+  const updateInProgress = useRef(false);
 
   useEffect(() => {
     const activeFile = sandpack.activeFile;
-    if (!activeFile) return;
+    if (!activeFile || updateInProgress.current) return;
 
-    const currentCode = sandpack.files[activeFile].code;
+    const currentCode = sandpack.files[activeFile]?.code;
+    if (!currentCode) return;
 
+    // Only process if code actually changed
     if (prevCodeRef.current !== currentCode) {
-      onChange?.(activeFile, currentCode);
-
+      updateInProgress.current = true;
+      
+      // 1. Update React state (for persistence across view switches)
+      if (onCodeChange) {
+        onCodeChange(currentCode, activeFile);
+      }
+      
+      // 2. Update Sandpack (for immediate preview updates)
       sandpack.updateFile(activeFile, currentCode);
       sandpack.runSandpack();
+      
+      // 3. Call the original onChange callback
+      if (onChange) {
+        onChange(activeFile, currentCode);
+      }
+      
+      updateInProgress.current = false;
     }
 
     prevCodeRef.current = currentCode;
-  }, [sandpack.files, sandpack.activeFile, onChange]);
+  }, [sandpack.files, sandpack.activeFile, onChange, onCodeChange]);
 
   return null;
 };
@@ -61,7 +77,6 @@ const SandpackListener = ({ onCodeChange, onPreviewReady }) => {
   return null;
 };
 
-// Custom hook to create preview files with interaction code
 const useElementInteraction = () => {
   const createPreviewFiles = (originalFiles) => {
     if (!originalFiles) return originalFiles;
@@ -253,19 +268,40 @@ export default initializeInteraction;`;
     if (originalFiles["/App.tsx"]) {
       const originalCode = originalFiles["/App.tsx"].code;
 
-      // Add import and useEffect to existing App.tsx for preview mode
-      const updatedCode = originalCode
-        .replace(
-          /import React(.*?);/,
-          "import React, { useEffect } from 'react';\nimport initializeInteraction from './interaction-utils';"
-        )
-        .replace(
+      // Check if the import already exists to prevent duplicates
+      const hasInteractionImport = originalCode.includes("import initializeInteraction from './interaction-utils';");
+      const hasUseEffectImport = originalCode.includes("import React, { useEffect }");
+      const hasInitializationCall = originalCode.includes("initializeInteraction()");
+
+      let updatedCode = originalCode;
+
+      // Only add imports if they don't already exist
+      if (!hasInteractionImport) {
+        if (!hasUseEffectImport) {
+          // Replace React import to include useEffect
+          updatedCode = updatedCode.replace(
+            /import React(.*?);/,
+            "import React, { useEffect } from 'react';"
+          );
+        }
+        
+        // Add the interaction import after React imports
+        updatedCode = updatedCode.replace(
+          /(import React.*?;)/,
+          "$1\nimport initializeInteraction from './interaction-utils';"
+        );
+      }
+
+      // Only add useEffect if initialization call doesn't exist
+      if (!hasInitializationCall) {
+        updatedCode = updatedCode.replace(
           "export default function App() {",
           `export default function App() {
   useEffect(() => {
     initializeInteraction();
   }, []);`
         );
+      }
 
       previewFiles["/App.tsx"] = {
         ...originalFiles["/App.tsx"],
@@ -869,7 +905,10 @@ export default function AboutSection() {
                       },
                     }}
                   >
-                    {view !== "preview" && <ActiveFileTracker onChange={setActiveCodeFile} />}
+                    {view !== "preview" && <ActiveFileTracker 
+  onChange={setActiveCodeFile}
+  onCodeChange={handleCodeChange}
+/>}
                     <SandpackListener
                       onCodeChange={handleCodeChange}
                       onPreviewReady={handlePreviewReady}
