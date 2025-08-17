@@ -29,9 +29,6 @@ const ActiveFileTracker = ({ onChange }) => {
 
       sandpack.updateFile(activeFile, currentCode);
       sandpack.runSandpack();
-
-      console.log("📂 Active file:", activeFile);
-      console.log("📝 Updated code synced to Sandpack:", currentCode);
     }
 
     prevCodeRef.current = currentCode;
@@ -229,8 +226,6 @@ const setupEventListeners = () => {
       selectedElement = null;
     }
   });
-
-  console.log('Sandpack interaction system initialized');
   window.parent.postMessage({ type: 'INTERACTION_READY' }, '*');
 };
 
@@ -319,7 +314,6 @@ const WebsiteEditor = ({ component, onSave }) => {
 
       // Check if click is outside the preview container
       if (!clickedInPreview && !clickedInPropertyEditor) {
-        console.log('Clicked outside preview - clearing selection');
         setSelectedElement(null);
 
         // Also send message to preview iframe to clear visual selection
@@ -350,10 +344,8 @@ const WebsiteEditor = ({ component, onSave }) => {
       const { data } = event;
 
       if (data?.type === "ELEMENT_SELECTED") {
-        console.log('Element selected:', data);
         setSelectedElement(data);
       } else if (data?.type === "INTERACTION_READY") {
-        console.log('Interaction system ready');
         setIsInteractionReady(true);
       }
     };
@@ -400,68 +392,115 @@ const WebsiteEditor = ({ component, onSave }) => {
 
   const updateFilesFromPreviewEnhanced = (property, newValue, elementInfo, changeInfo) => {
     if (!elementInfo || !filesRef.current || updateInProgress.current) return;
-
+  
     updateInProgress.current = true;
-
+  
     const filesToSearch = ["/App.tsx", "/HeroSection.tsx", "/FeaturesSection.tsx", "/ServicesSection.tsx", "/AboutSection.tsx"];
     const newFiles = { ...filesRef.current };
     let updated = false;
-
+  
     let oldValue = changeInfo?.oldValue;
-
-    if (property === 'className' && oldValue) {
-      oldValue = oldValue
-        .split(' ')
-        .filter(cls => cls && !cls.startsWith('sandpack-'))
-        .join(' ')
-        .trim();
-    }
-
-    if (!oldValue) {
-      console.log("No old value provided - cannot perform search and replace");
-      updateInProgress.current = false;
-      return;
-    }
-
-    // Simple search and replace approach
-    for (const filePath of filesToSearch) {
-      if (newFiles[filePath] && newFiles[filePath].code) {
-        let fileCode = newFiles[filePath].code;
-        const originalCode = fileCode;
-
-        if (fileCode.includes(oldValue)) {
-          if (newValue) {
-            newValue = newValue
-              .split(' ')
-              .filter(cls => cls && !cls.startsWith('sandpack-'))
-              .join(' ')
-              .trim();
-            fileCode = fileCode.replace(oldValue, newValue);
+  
+    // Special handling for textContent updates
+    if (property === 'textContent') {
+      
+      // For text content, we need to be more intelligent about finding and replacing
+      for (const filePath of filesToSearch) {
+        if (newFiles[filePath] && newFiles[filePath].code) {
+          let fileCode = newFiles[filePath].code;
+          const originalCode = fileCode;
+  
+          // Try multiple replacement strategies for text content
+          if (oldValue && oldValue.trim()) {
+            // Strategy 1: Direct text replacement (escaped for regex)
+            const escapedOldValue = oldValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const textRegex = new RegExp(`>${escapedOldValue}<`, 'g');
+            
+            if (textRegex.test(fileCode)) {
+              fileCode = fileCode.replace(textRegex, `>${newValue}<`);
+              updated = true;
+            } else {
+              // Strategy 2: Look for JSX text content patterns
+              const jsxTextRegex = new RegExp(`>\\s*${escapedOldValue}\\s*<`, 'g');
+              if (jsxTextRegex.test(fileCode)) {
+                fileCode = fileCode.replace(jsxTextRegex, `>${newValue}<`);
+                updated = true;
+              } else {
+                // Strategy 3: Look for text within quotes (for string literals)
+                const quotedTextRegex = new RegExp(`["'\`]${escapedOldValue}["'\`]`, 'g');
+                if (quotedTextRegex.test(fileCode)) {
+                  fileCode = fileCode.replace(quotedTextRegex, `"${newValue}"`);
+                  updated = true;
+                }
+              }
+            }
+          } else if (!oldValue || !oldValue.trim()) {
+            // Handle case where there was no previous text content
+            // Look for empty JSX tags and add content
+            const emptyTagRegex = />(\s*)</g;
+            if (emptyTagRegex.test(fileCode)) {
+              fileCode = fileCode.replace(emptyTagRegex, `>${newValue}<`);
+              updated = true;
+            }
           }
-
-          updated = true;
-          newFiles[filePath] = { ...newFiles[filePath], code: fileCode };
-
-          break;
+  
+          if (updated) {
+            newFiles[filePath] = { ...newFiles[filePath], code: fileCode };
+            break;
+          }
+        }
+      }
+    } 
+    // Handle className updates
+    else if (property === 'className') {
+      if (oldValue) {
+        // Clean up className values (remove sandpack classes)
+        if (property === 'className' && oldValue) {
+          oldValue = oldValue
+            .split(' ')
+            .filter(cls => cls && !cls.startsWith('sandpack-'))
+            .join(' ')
+            .trim();
+        }
+  
+        if (newValue) {
+          newValue = newValue
+            .split(' ')
+            .filter(cls => cls && !cls.startsWith('sandpack-'))
+            .join(' ')
+            .trim();
+        }
+  
+        // Simple search and replace for className
+        for (const filePath of filesToSearch) {
+          if (newFiles[filePath] && newFiles[filePath].code) {
+            let fileCode = newFiles[filePath].code;
+  
+            if (fileCode.includes(oldValue)) {
+              fileCode = fileCode.replace(oldValue, newValue);
+              updated = true;
+              newFiles[filePath] = { ...newFiles[filePath], code: fileCode };
+              break;
+            }
+          }
         }
       }
     }
-
+  
     if (updated) {
       setFiles(newFiles);
-
+  
       if (sandpack.current) {
         Object.keys(newFiles).forEach(filePath => {
           if (filePath !== "/interaction-utils.js" && newFiles[filePath].code !== filesRef.current[filePath]?.code) {
-            console.log(`Updating sandpack file: ${filePath}`);
             sandpack.current.updateFile(filePath, newFiles[filePath].code);
           }
         });
       }
     } else {
-      console.log("No files were updated - no exact match found");
+      // console.log("No files were updated - no exact match found for", property, oldValue, '->', newValue);
     }
-
+  
     updateInProgress.current = false;
   };
 
@@ -512,7 +551,6 @@ const WebsiteEditor = ({ component, onSave }) => {
     // Skip interaction utils file
     if (filePath === "/interaction-utils.js") return;
 
-    console.log(`Code changed in ${filePath} - Auto-running...`);
     setCompilationStatus("compiling");
 
     // Update files state immediately for instant auto-run

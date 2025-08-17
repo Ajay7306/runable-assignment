@@ -95,7 +95,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
   
     useEffect(() => {
       if (selectedElement && !isUpdating.current) {
-        console.log('Selected element updated:', selectedElement);
         
         const newTextContent = selectedElement.textContent || '';
         const newClassName = selectedElement.className || '';
@@ -166,10 +165,7 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
           padding: padding,
           margin: margin
         };
-
-        console.log('Previous values stored:', previousValues.current);
         
-        // Update all state values
         setTextContent(newTextContent);
         setClassName(newClassName);
         setFontSize(newFontSize);
@@ -212,12 +208,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
           oldValue: actualOldValue,
           newValue: value
         };
-        
-        console.log('=== PROPERTY CHANGE DETECTED ===');
-        console.log('Property:', property);
-        console.log('Old Value:', actualOldValue);
-        console.log('New Value:', value);
-        console.log('Change Info:', changeInfo);
 
         setTimeout(() => {
           // Send the update with change information
@@ -246,25 +236,16 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
         newValue: newClasses
       };
       
-      console.log('Direct className change:', changeInfo);
       handleUpdate('className', newClasses, 'className_direct');
     };
 
     const updateClassProperty = (property, newValue, oldValue) => {
       const currentClasses = className.split(' ').filter(Boolean);
       
-      console.log('=== CLASS PROPERTY UPDATE ===');
-      console.log('Property:', property);
-      console.log('Old Value:', oldValue);
-      console.log('New Value:', newValue);
-      console.log('Current Classes:', currentClasses);
-      
-      // Remove old class if exists
       if (oldValue) {
         const oldIndex = currentClasses.indexOf(oldValue);
         if (oldIndex > -1) {
           currentClasses.splice(oldIndex, 1);
-          console.log('Removed old class:', oldValue);
         }
       }
       
@@ -283,11 +264,10 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
       // Add new class
       if (newValue && newValue !== 'none' && newValue !== 'bg-transparent') {
         filteredClasses.push(newValue);
-        console.log('Added new class:', newValue);
+
       }
       
       const newClassName = filteredClasses.join(' ');
-      console.log('Final className:', newClassName);
       
       // Create detailed change info for class property changes
       const changeInfo = {
@@ -307,12 +287,36 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
 
     const handleTextChange = (value) => {
       const oldTextContent = textContent;
-      console.log('Text changing from:', oldTextContent, 'to:', value);
       setTextContent(value);
+      
+      // Clear any existing timeout to prevent multiple updates
       clearTimeout(window.textUpdateTimeout);
+      
+      // Debounce the update but ensure we pass the correct old value
       window.textUpdateTimeout = setTimeout(() => {
-        handleUpdate('textContent', value, 'text_content');
-      }, 300);
+        const changeInfo = {
+          property: 'textContent',
+          value: value,
+          changeType: 'text_content',
+          oldValue: oldTextContent, // Use the captured old value
+          newValue: value
+        };
+        
+        
+        // Use the enhanced handleUpdate with proper change info
+        if (onUpdate && selectedElement && !isUpdating.current) {
+          isUpdating.current = true;
+          
+          setTimeout(() => {
+            onUpdate('textContent', value, changeInfo);
+            previousValues.current['textContent'] = value;
+            
+            setTimeout(() => {
+              isUpdating.current = false;
+            }, 100);
+          }, 10);
+        }
+      }, 5); // Increased debounce time to 500ms for better UX
     };
   
     if (!selectedElement) {
@@ -379,7 +383,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
               value={textColor}
               onValueChange={(value) => {
                 const oldTextColor = textColor;
-                console.log('Text color changing from:', oldTextColor, 'to:', value);
                 setTextColor(value);
                 updateClassProperty('textColor', value, oldTextColor);
               }}
@@ -406,7 +409,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
               value={backgroundColor}
               onValueChange={(value) => {
                 const oldBackgroundColor = backgroundColor;
-                console.log('Background color changing from:', oldBackgroundColor, 'to:', value);
                 setBackgroundColor(value);
                 updateClassProperty('backgroundColor', value, oldBackgroundColor);
               }}
@@ -436,7 +438,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
             onValueChange={(value) => {
               const oldFontFamily = `font-${fontFamily}`;
               const newFontFamily = `font-${value}`;
-              console.log('Font family changing from:', oldFontFamily, 'to:', newFontFamily);
               setFontFamily(value);
               updateClassProperty('fontFamily', newFontFamily, oldFontFamily);
             }}
@@ -458,7 +459,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
             value={fontWeight}
             onValueChange={(value) => {
               const oldWeight = fontWeight;
-              console.log('Font weight changing from:', oldWeight, 'to:', value);
               setFontWeight(value);
               updateClassProperty('fontWeight', value, oldWeight);
             }}
@@ -481,7 +481,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
             value={fontSize}
             onValueChange={(value) => {
               const oldSize = fontSize;
-              console.log('Font size changing from:', oldSize, 'to:', value);
               setFontSize(value);
               updateClassProperty('fontSize', value, oldSize);
             }}
@@ -512,7 +511,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
               value={padding}
               onValueChange={(value) => {
                 const oldPadding = padding;
-                console.log('Padding changing from:', oldPadding, 'to:', value);
                 setPadding(value);
                 updateClassProperty('padding', value, oldPadding);
               }}
@@ -541,7 +539,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
               value={margin}
               onValueChange={(value) => {
                 const oldMargin = margin;
-                console.log('Margin changing from:', oldMargin, 'to:', value);
                 setMargin(value);
                 updateClassProperty('margin', value, oldMargin);
               }}
