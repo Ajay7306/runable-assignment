@@ -4,82 +4,324 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const PropertyEditor = ({ selectedElement, onUpdate }) => {
     const [textContent, setTextContent] = useState('');
-    const [fontSize, setFontSize] = useState('16');
-    const [color, setColor] = useState('#000000');
-    const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-    const [fontWeight, setFontWeight] = useState('normal');
+    const [fontSize, setFontSize] = useState('text-base');
+    const [textColor, setTextColor] = useState('text-black');
+    const [backgroundColor, setBackgroundColor] = useState('bg-white');
+    const [fontWeight, setFontWeight] = useState('font-normal');
     const [fontStyle, setFontStyle] = useState('normal');
-    const [fontFamily, setFontFamily] = useState('sans'); // 'sans', 'serif', 'mono'
-    const [padding, setPadding] = useState('p-0'); // Tailwind padding class
-    const [margin, setMargin] = useState('m-0'); // Tailwind margin class
-    const [className, setClassName] = useState(''); // For editing Tailwind classes
+    const [fontFamily, setFontFamily] = useState('sans');
+    const [padding, setPadding] = useState('p-0');
+    const [margin, setMargin] = useState('m-0');
+    const [className, setClassName] = useState('');
+    const [localValues, setLocalValues] = useState({});
+    // Ref to prevent circular updates
+    const isUpdating = useRef(false);
+    const previousValues = useRef({}); // Track previous values
+
+    // Tailwind color options
+    const textColors = [
+        { value: 'text-black', label: 'Black' },
+        { value: 'text-white', label: 'White' },
+        { value: 'text-gray-50', label: 'Gray 50' },
+        { value: 'text-gray-100', label: 'Gray 100' },
+        { value: 'text-gray-200', label: 'Gray 200' },
+        { value: 'text-gray-300', label: 'Gray 300' },
+        { value: 'text-gray-400', label: 'Gray 400' },
+        { value: 'text-gray-500', label: 'Gray 500' },
+        { value: 'text-gray-600', label: 'Gray 600' },
+        { value: 'text-gray-700', label: 'Gray 700' },
+        { value: 'text-gray-800', label: 'Gray 800' },
+        { value: 'text-gray-900', label: 'Gray 900' },
+        { value: 'text-red-500', label: 'Red 500' },
+        { value: 'text-red-600', label: 'Red 600' },
+        { value: 'text-red-700', label: 'Red 700' },
+        { value: 'text-blue-500', label: 'Blue 500' },
+        { value: 'text-blue-600', label: 'Blue 600' },
+        { value: 'text-blue-700', label: 'Blue 700' },
+        { value: 'text-green-500', label: 'Green 500' },
+        { value: 'text-green-600', label: 'Green 600' },
+        { value: 'text-green-700', label: 'Green 700' },
+        { value: 'text-yellow-500', label: 'Yellow 500' },
+        { value: 'text-yellow-600', label: 'Yellow 600' },
+        { value: 'text-purple-500', label: 'Purple 500' },
+        { value: 'text-purple-600', label: 'Purple 600' },
+        { value: 'text-indigo-500', label: 'Indigo 500' },
+        { value: 'text-indigo-600', label: 'Indigo 600' },
+        { value: 'text-pink-500', label: 'Pink 500' },
+        { value: 'text-pink-600', label: 'Pink 600' },
+        { value: 'text-orange-500', label: 'Orange 500' },
+        { value: 'text-orange-600', label: 'Orange 600' }
+    ];
+
+    const backgroundColors = [
+        { value: 'bg-transparent', label: 'Transparent' },
+        { value: 'bg-black', label: 'Black' },
+        { value: 'bg-white', label: 'White' },
+        { value: 'bg-gray-50', label: 'Gray 50' },
+        { value: 'bg-gray-100', label: 'Gray 100' },
+        { value: 'bg-gray-200', label: 'Gray 200' },
+        { value: 'bg-gray-300', label: 'Gray 300' },
+        { value: 'bg-gray-400', label: 'Gray 400' },
+        { value: 'bg-gray-500', label: 'Gray 500' },
+        { value: 'bg-gray-600', label: 'Gray 600' },
+        { value: 'bg-gray-700', label: 'Gray 700' },
+        { value: 'bg-gray-800', label: 'Gray 800' },
+        { value: 'bg-gray-900', label: 'Gray 900' },
+        { value: 'bg-red-50', label: 'Red 50' },
+        { value: 'bg-red-100', label: 'Red 100' },
+        { value: 'bg-red-500', label: 'Red 500' },
+        { value: 'bg-red-600', label: 'Red 600' },
+        { value: 'bg-blue-50', label: 'Blue 50' },
+        { value: 'bg-blue-100', label: 'Blue 100' },
+        { value: 'bg-blue-500', label: 'Blue 500' },
+        { value: 'bg-blue-600', label: 'Blue 600' },
+        { value: 'bg-green-50', label: 'Green 50' },
+        { value: 'bg-green-100', label: 'Green 100' },
+        { value: 'bg-green-500', label: 'Green 500' },
+        { value: 'bg-green-600', label: 'Green 600' },
+        { value: 'bg-yellow-50', label: 'Yellow 50' },
+        { value: 'bg-yellow-100', label: 'Yellow 100' },
+        { value: 'bg-yellow-500', label: 'Yellow 500' },
+        { value: 'bg-purple-50', label: 'Purple 50' },
+        { value: 'bg-purple-100', label: 'Purple 100' },
+        { value: 'bg-purple-500', label: 'Purple 500' },
+        { value: 'bg-indigo-50', label: 'Indigo 50' },
+        { value: 'bg-indigo-500', label: 'Indigo 500' },
+        { value: 'bg-pink-50', label: 'Pink 50' },
+        { value: 'bg-pink-500', label: 'Pink 500' },
+        { value: 'bg-orange-50', label: 'Orange 50' },
+        { value: 'bg-orange-500', label: 'Orange 500' }
+    ];
   
     useEffect(() => {
-      if (selectedElement) {
-        setTextContent(selectedElement.textContent || '');
-        setClassName(selectedElement.element.className || '');
+      if (selectedElement && !isUpdating.current) {
+        console.log('Selected element updated:', selectedElement);
         
-        // Initialize fontSize from element's className or computed style
-        const currentClasses = selectedElement.element.className.split(' ');
-        const currentFontSizeClass = currentClasses.find(cls => cls.startsWith('text-'));
-        if (currentFontSizeClass) {
-          setFontSize(currentFontSizeClass);
-        } else {
-          // Fallback to default if no Tailwind class found
-          setFontSize('text-base');
-        }
+        const newTextContent = selectedElement.textContent || '';
+        const newClassName = selectedElement.className || '';
+        
+        // Parse current classes from className
+        const currentClasses = newClassName.split(' ').filter(Boolean);
+        
+        // Initialize fontSize from element's className
+        const currentFontSizeClass = currentClasses.find(cls => cls.startsWith('text-') && cls.match(/text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)$/));
+        const newFontSize = currentFontSizeClass || 'text-base';
 
-        setColor(rgbToHex(selectedElement.styles.color) || '#000000');
-        setBackgroundColor(rgbToHex(selectedElement.styles.backgroundColor) || '#ffffff');
-        
-        // Initialize fontWeight from element's className or computed style
-        const currentFontWeightClass = currentClasses.find(cls => cls.startsWith('font-') && !cls.startsWith('font-family'));
-        if (currentFontWeightClass) {
-          setFontWeight(currentFontWeightClass);
-        } else {
-          setFontWeight('font-normal');
-        }
+        // Initialize text color from element's className
+        const currentTextColorClass = currentClasses.find(cls => 
+          cls.startsWith('text-') && !cls.match(/text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)$/)
+        );
+        const newTextColor = currentTextColorClass || 'text-black';
 
-        setFontStyle(selectedElement.styles.fontStyle || 'normal');
+        // Initialize background color from element's className
+        const currentBgColorClass = currentClasses.find(cls => cls.startsWith('bg-'));
+        const newBackgroundColor = currentBgColorClass || 'bg-transparent';
         
-        // Determine current font family from element's computed style or className
-        const computedFontFamily = selectedElement.styles.fontFamily;
-        if (computedFontFamily.includes('monospace')) {
-          setFontFamily('mono');
+        // Initialize fontWeight from element's className
+        const currentFontWeightClass = currentClasses.find(cls => 
+          cls.startsWith('font-') && !cls.includes('family') && cls.match(/font-(thin|light|normal|medium|semibold|bold|black)$/)
+        );
+        const newFontWeight = currentFontWeightClass || 'font-normal';
+
+        // Set font style from computed styles
+        const newFontStyle = selectedElement.styles?.fontStyle || 'normal';
+        
+        // Determine font family from computed style or className
+        const computedFontFamily = selectedElement.styles?.fontFamily || '';
+        const fontFamilyClass = currentClasses.find(cls => 
+          cls === 'font-mono' || cls === 'font-serif' || cls === 'font-sans'
+        );
+        
+        let newFontFamily = 'sans';
+        if (fontFamilyClass) {
+          newFontFamily = fontFamilyClass.replace('font-', '');
+        } else if (computedFontFamily.includes('monospace')) {
+          newFontFamily = 'mono';
         } else if (computedFontFamily.includes('serif')) {
-          setFontFamily('serif');
-        } else {
-          setFontFamily('sans');
+          newFontFamily = 'serif';
         }
 
-        // Initialize padding and margin from element's className
-        const currentPaddingClass = currentClasses.find(cls => cls.startsWith('p-') || cls.startsWith('px-') || cls.startsWith('py-') || cls.startsWith('pt-') || cls.startsWith('pr-') || cls.startsWith('pb-') || cls.startsWith('pl-'));
-        setPadding(currentPaddingClass || 'p-0');
+        // Initialize padding from className
+        const currentPaddingClass = currentClasses.find(cls => 
+          cls.match(/^p[xytrbl]?-\d+$/)
+        );
+        const newPadding = currentPaddingClass || 'p-0';
 
-        const currentMarginClass = currentClasses.find(cls => cls.startsWith('m-') || cls.startsWith('mx-') || cls.startsWith('my-') || cls.startsWith('mt-') || cls.startsWith('mr-') || cls.startsWith('mb-') || cls.startsWith('ml-'));
-        setMargin(currentMarginClass || 'm-0');
+        // Initialize margin from className
+        const currentMarginClass = currentClasses.find(cls => 
+          cls.match(/^m[xytrbl]?-\d+$/)
+        );
+        const newMargin = currentMarginClass || 'm-0';
+
+        // Store current values as previous values BEFORE updating state
+        previousValues.current = {
+          textContent: textContent,
+          className: className,
+          fontSize: fontSize,
+          textColor: textColor,
+          backgroundColor: backgroundColor,
+          fontWeight: fontWeight,
+          fontStyle: fontStyle,
+          fontFamily: fontFamily,
+          padding: padding,
+          margin: margin
+        };
+
+        console.log('Previous values stored:', previousValues.current);
+        
+        // Update all state values
+        setTextContent(newTextContent);
+        setClassName(newClassName);
+        setFontSize(newFontSize);
+        setTextColor(newTextColor);
+        setBackgroundColor(newBackgroundColor);
+        setFontWeight(newFontWeight);
+        setFontStyle(newFontStyle);
+        setFontFamily(newFontFamily);
+        setPadding(newPadding);
+        setMargin(newMargin);
       }
     }, [selectedElement]);
   
-    const rgbToHex = (rgb) => {
-      if (!rgb || rgb === 'rgba(0, 0, 0, 0)') return '#ffffff';
-      const result = rgb.match(/\d+/g);
-      if (!result) return '#000000';
-      return '#' + result.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
-    };
-  
-    const handleUpdate = (property, value) => {
-      if (onUpdate && selectedElement) {
-        onUpdate(selectedElement.path, property, value);
+    // Enhanced handleUpdate with change tracking
+    const handleUpdate = (property, value, changeType = 'single') => {
+      if (onUpdate && selectedElement && !isUpdating.current) {
+        isUpdating.current = true;
+        
+        // Get the actual previous value from current state, not from ref
+        let actualOldValue = '';
+        switch(property) {
+          case 'textContent': actualOldValue = textContent; break;
+          case 'className': actualOldValue = className; break;
+          case 'fontSize': actualOldValue = fontSize; break;
+          case 'textColor': actualOldValue = textColor; break;
+          case 'backgroundColor': actualOldValue = backgroundColor; break;
+          case 'fontWeight': actualOldValue = fontWeight; break;
+          case 'fontStyle': actualOldValue = fontStyle; break;
+          case 'fontFamily': actualOldValue = fontFamily; break;
+          case 'padding': actualOldValue = padding; break;
+          case 'margin': actualOldValue = margin; break;
+          default: actualOldValue = previousValues.current[property] || '';
+        }
+        
+        // Determine what changed
+        const changeInfo = {
+          property,
+          value,
+          changeType,
+          oldValue: actualOldValue,
+          newValue: value
+        };
+        
+        console.log('=== PROPERTY CHANGE DETECTED ===');
+        console.log('Property:', property);
+        console.log('Old Value:', actualOldValue);
+        console.log('New Value:', value);
+        console.log('Change Info:', changeInfo);
+
+        setTimeout(() => {
+          // Send the update with change information
+          onUpdate(property, value, changeInfo);
+          
+          // Update previous values for next change
+          previousValues.current[property] = value;
+          
+          setTimeout(() => {
+            isUpdating.current = false;
+          }, 100);
+        }, 10);
       }
+    };
+
+    const updateClassName = (newClasses) => {
+      const oldClassName = className;
+      setClassName(newClasses);
+      
+      // Create change info with actual old/new values
+      const changeInfo = {
+        property: 'className',
+        value: newClasses,
+        changeType: 'className_direct',
+        oldValue: oldClassName,
+        newValue: newClasses
+      };
+      
+      console.log('Direct className change:', changeInfo);
+      handleUpdate('className', newClasses, 'className_direct');
+    };
+
+    const updateClassProperty = (property, newValue, oldValue) => {
+      const currentClasses = className.split(' ').filter(Boolean);
+      
+      console.log('=== CLASS PROPERTY UPDATE ===');
+      console.log('Property:', property);
+      console.log('Old Value:', oldValue);
+      console.log('New Value:', newValue);
+      console.log('Current Classes:', currentClasses);
+      
+      // Remove old class if exists
+      if (oldValue) {
+        const oldIndex = currentClasses.indexOf(oldValue);
+        if (oldIndex > -1) {
+          currentClasses.splice(oldIndex, 1);
+          console.log('Removed old class:', oldValue);
+        }
+      }
+      
+      // Remove any existing classes of the same type more comprehensively
+      const filteredClasses = currentClasses.filter(cls => {
+        if (property === 'fontSize') return !cls.match(/^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)$/);
+        if (property === 'textColor') return !cls.startsWith('text-') || cls.match(/^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)$/);
+        if (property === 'backgroundColor') return !cls.startsWith('bg-');
+        if (property === 'fontWeight') return !cls.match(/^font-(normal|bold|semibold|light|medium|thin|black)$/);
+        if (property === 'fontFamily') return !cls.match(/^font-(sans|serif|mono)$/);
+        if (property === 'padding') return !cls.match(/^p[xytrbl]?-\d+$/);
+        if (property === 'margin') return !cls.match(/^m[xytrbl]?-\d+$/);
+        return true;
+      });
+      
+      // Add new class
+      if (newValue && newValue !== 'none' && newValue !== 'bg-transparent') {
+        filteredClasses.push(newValue);
+        console.log('Added new class:', newValue);
+      }
+      
+      const newClassName = filteredClasses.join(' ');
+      console.log('Final className:', newClassName);
+      
+      // Create detailed change info for class property changes
+      const changeInfo = {
+        property: 'className',
+        value: newClassName,
+        changeType: 'class_property',
+        classProperty: property,
+        oldClassValue: oldValue,
+        newClassValue: newValue,
+        oldClassName: className,
+        newClassName: newClassName
+      };
+      
+      setClassName(newClassName);
+      handleUpdate('className', newClassName, 'class_property');
+    };
+
+    const handleTextChange = (value) => {
+      const oldTextContent = textContent;
+      console.log('Text changing from:', oldTextContent, 'to:', value);
+      setTextContent(value);
+      clearTimeout(window.textUpdateTimeout);
+      window.textUpdateTimeout = setTimeout(() => {
+        handleUpdate('textContent', value, 'text_content');
+      }, 300);
     };
   
     if (!selectedElement) {
       return (
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <div className="text-center text-gray-500">
+        <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+          <div className="text-center text-gray-400">
             <Edit3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>Select an element to edit its properties</p>
+            <p className="text-sm mt-2">Click on any element in the preview to start editing</p>
           </div>
         </div>
       );
@@ -87,24 +329,25 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
   
     return (
       <div className="space-y-4">
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="font-medium text-blue-900">Selected: {selectedElement.tagName}</div>
-          <div className="text-sm text-blue-700">Path: {selectedElement.path}</div>
+        <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
+          <div className="font-medium text-blue-200">Selected: {selectedElement.tagName}</div>
+          <div className="text-sm text-blue-300">Selector: {selectedElement.selector}</div>
+          {selectedElement.id && (
+            <div className="text-xs text-blue-400">ID: #{selectedElement.id}</div>
+          )}
+          <div className="text-xs text-gray-400 mt-1">Current className: {className}</div>
         </div>
   
         {/* Text Content */}
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium mb-2">
+          <label className="flex items-center gap-2 text-sm font-medium mb-2 text-gray-200">
             <Type className="w-4 h-4" />
             Text Content
           </label>
           <textarea
             value={textContent}
-            onChange={(e) => {
-              setTextContent(e.target.value);
-              handleUpdate('textContent', e.target.value);
-            }}
-            className="w-full p-2 border border-gray-300 rounded-md resize-none"
+            onChange={(e) => handleTextChange(e.target.value)}
+            className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md resize-none text-gray-100 focus:border-blue-500 focus:outline-none"
             rows="3"
             placeholder="Enter text content..."
           />
@@ -112,68 +355,93 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
 
         {/* Class Name */}
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium mb-2">
+          <label className="flex items-center gap-2 text-sm font-medium mb-2 text-gray-200">
             <Code className="w-4 h-4" />
             Tailwind Classes (className)
           </label>
           <input
             type="text"
             value={className}
-            onChange={(e) => {
-              setClassName(e.target.value);
-              handleUpdate('className', e.target.value);
-            }}
-            className="w-full p-2 border border-gray-300 rounded-md"
+            onChange={(e) => updateClassName(e.target.value)}
+            className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md text-gray-100 focus:border-blue-500 focus:outline-none"
             placeholder="e.g., flex items-center bg-blue-500"
           />
         </div>
   
-        
-  
         {/* Colors */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium mb-2">
+            <label className="flex items-center gap-2 text-sm font-medium mb-2 text-gray-200">
               <Palette className="w-4 h-4" />
               Text Color
             </label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => {
-                setColor(e.target.value);
-                handleUpdate('color', e.target.value);
+            <Select
+              value={textColor}
+              onValueChange={(value) => {
+                const oldTextColor = textColor;
+                console.log('Text color changing from:', oldTextColor, 'to:', value);
+                setTextColor(value);
+                updateClassProperty('textColor', value, oldTextColor);
               }}
-              className="w-full h-10 border border-gray-300 rounded-md"
-            />
+            >
+              <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-100">
+                <SelectValue placeholder="Select text color" />
+              </SelectTrigger>
+              <SelectContent>
+                {textColors.map((color) => (
+                  <SelectItem key={color.value} value={color.value}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded ${color.value.replace('text-', 'bg-')} border`}></div>
+                      {color.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          
           <div>
-            <label className="block text-sm font-medium mb-2">Background</label>
-            <input
-              type="color"
+            <label className="block text-sm font-medium mb-2 text-gray-200">Background Color</label>
+            <Select
               value={backgroundColor}
-              onChange={(e) => {
-                setBackgroundColor(e.target.value);
-                handleUpdate('backgroundColor', e.target.value);
+              onValueChange={(value) => {
+                const oldBackgroundColor = backgroundColor;
+                console.log('Background color changing from:', oldBackgroundColor, 'to:', value);
+                setBackgroundColor(value);
+                updateClassProperty('backgroundColor', value, oldBackgroundColor);
               }}
-              className="w-full h-10 border border-gray-300 rounded-md"
-            />
+            >
+              <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-100">
+                <SelectValue placeholder="Select background color" />
+              </SelectTrigger>
+              <SelectContent>
+                {backgroundColors.map((color) => (
+                  <SelectItem key={color.value} value={color.value}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded ${color.value} border ${color.value === 'bg-transparent' ? 'bg-gray-200' : ''}`}></div>
+                      {color.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-  
-        
 
         {/* Font Family */}
         <div>
-          <label className="block text-sm font-medium mb-2">Typography</label>
+          <label className="block text-sm font-medium mb-2 text-gray-200">Typography</label>
           <Select
             value={fontFamily}
             onValueChange={(value) => {
+              const oldFontFamily = `font-${fontFamily}`;
+              const newFontFamily = `font-${value}`;
+              console.log('Font family changing from:', oldFontFamily, 'to:', newFontFamily);
               setFontFamily(value);
-              handleUpdate('fontFamily', `font-${value}`);
+              updateClassProperty('fontFamily', newFontFamily, oldFontFamily);
             }}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-100">
               <SelectValue placeholder="Select a font" />
             </SelectTrigger>
             <SelectContent>
@@ -189,45 +457,49 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
           <Select
             value={fontWeight}
             onValueChange={(value) => {
+              const oldWeight = fontWeight;
+              console.log('Font weight changing from:', oldWeight, 'to:', value);
               setFontWeight(value);
-              handleUpdate('fontWeight', value); // value is now a Tailwind class like 'font-bold'
+              updateClassProperty('fontWeight', value, oldWeight);
             }}
           >
-            <SelectTrigger className="w-1/2">
+            <SelectTrigger className="w-1/2 bg-gray-800 border-gray-600 text-gray-100">
               <SelectValue placeholder="Weight" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="font-normal">Normal</SelectItem>
-              <SelectItem value="font-bold">Bold</SelectItem>
-              <SelectItem value="font-semibold">Semibold</SelectItem>
+              <SelectItem value="font-thin">Thin</SelectItem>
               <SelectItem value="font-light">Light</SelectItem>
+              <SelectItem value="font-normal">Normal</SelectItem>
+              <SelectItem value="font-medium">Medium</SelectItem>
+              <SelectItem value="font-semibold">Semibold</SelectItem>
+              <SelectItem value="font-bold">Bold</SelectItem>
+              <SelectItem value="font-black">Black</SelectItem>
             </SelectContent>
           </Select>
 
           <Select
-            value={fontSize} // fontSize state will now store Tailwind class
+            value={fontSize}
             onValueChange={(value) => {
+              const oldSize = fontSize;
+              console.log('Font size changing from:', oldSize, 'to:', value);
               setFontSize(value);
-              handleUpdate('fontSize', value); // value is now a Tailwind class like 'text-base'
+              updateClassProperty('fontSize', value, oldSize);
             }}
           >
-            <SelectTrigger className="w-1/2">
+            <SelectTrigger className="w-1/2 bg-gray-800 border-gray-600 text-gray-100">
               <SelectValue placeholder="Size" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="text-xs">12px</SelectItem>
-              <SelectItem value="text-sm">14px</SelectItem>
-              <SelectItem value="text-base">16px</SelectItem>
-              <SelectItem value="text-lg">18px</SelectItem>
-              <SelectItem value="text-xl">20px</SelectItem>
-              <SelectItem value="text-2xl">24px</SelectItem>
-              <SelectItem value="text-3xl">28px</SelectItem>
-              <SelectItem value="text-4xl">32px</SelectItem>
-              <SelectItem value="text-5xl">36px</SelectItem>
-              <SelectItem value="text-6xl">40px</SelectItem>
-              <SelectItem value="text-7xl">48px</SelectItem>
-              <SelectItem value="text-8xl">64px</SelectItem>
-              <SelectItem value="text-9xl">72px</SelectItem>
+              <SelectItem value="text-xs">12px (xs)</SelectItem>
+              <SelectItem value="text-sm">14px (sm)</SelectItem>
+              <SelectItem value="text-base">16px (base)</SelectItem>
+              <SelectItem value="text-lg">18px (lg)</SelectItem>
+              <SelectItem value="text-xl">20px (xl)</SelectItem>
+              <SelectItem value="text-2xl">24px (2xl)</SelectItem>
+              <SelectItem value="text-3xl">30px (3xl)</SelectItem>
+              <SelectItem value="text-4xl">36px (4xl)</SelectItem>
+              <SelectItem value="text-5xl">48px (5xl)</SelectItem>
+              <SelectItem value="text-6xl">60px (6xl)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -235,15 +507,17 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
         {/* Padding and Margin */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Padding</label>
+            <label className="block text-sm font-medium mb-2 text-gray-200">Padding</label>
             <Select
               value={padding}
               onValueChange={(value) => {
+                const oldPadding = padding;
+                console.log('Padding changing from:', oldPadding, 'to:', value);
                 setPadding(value);
-                handleUpdate('padding', value);
+                updateClassProperty('padding', value, oldPadding);
               }}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-100">
                 <SelectValue placeholder="Padding" />
               </SelectTrigger>
               <SelectContent>
@@ -262,15 +536,17 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Margin</label>
+            <label className="block text-sm font-medium mb-2 text-gray-200">Margin</label>
             <Select
               value={margin}
               onValueChange={(value) => {
+                const oldMargin = margin;
+                console.log('Margin changing from:', oldMargin, 'to:', value);
                 setMargin(value);
-                handleUpdate('margin', value);
+                updateClassProperty('margin', value, oldMargin);
               }}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-gray-100">
                 <SelectValue placeholder="Margin" />
               </SelectTrigger>
               <SelectContent>
@@ -291,6 +567,6 @@ const PropertyEditor = ({ selectedElement, onUpdate }) => {
         </div>
       </div>
     );
-  };
+};
 
 export default PropertyEditor;

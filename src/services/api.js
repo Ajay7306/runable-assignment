@@ -32,7 +32,6 @@ export const mockAPI = () => ({
     },
 
     async saveFileContent(fileName, content) {
-        // This function will be intercepted by the agent to use the write_file tool
         console.log(`Agent will save file: ${fileName} with content: ${content.substring(0, 100)}...`);
         return { success: true };
     }
