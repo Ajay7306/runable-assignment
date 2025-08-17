@@ -16,11 +16,26 @@ import {
 
 const ActiveFileTracker = ({ onChange }) => {
   const { sandpack } = useSandpack();
+  const prevCodeRef = useRef(null);
 
   useEffect(() => {
-    onChange(sandpack.activeFile);
-    sandpack.runSandpack();
-  }, [sandpack.activeFile, onChange]);
+    const activeFile = sandpack.activeFile;
+    if (!activeFile) return;
+
+    const currentCode = sandpack.files[activeFile].code;
+
+    if (prevCodeRef.current !== currentCode) {
+      onChange?.(activeFile, currentCode);
+
+      sandpack.updateFile(activeFile, currentCode);
+      sandpack.runSandpack();
+
+      console.log("📂 Active file:", activeFile);
+      console.log("📝 Updated code synced to Sandpack:", currentCode);
+    }
+
+    prevCodeRef.current = currentCode;
+  }, [sandpack.files, sandpack.activeFile, onChange]);
 
   return null;
 };
@@ -394,7 +409,6 @@ const WebsiteEditor = ({ component, onSave }) => {
 
     let oldValue = changeInfo?.oldValue;
 
-    // Clean sandpack-specific classes from the old value if it's a className
     if (property === 'className' && oldValue) {
       oldValue = oldValue
         .split(' ')
